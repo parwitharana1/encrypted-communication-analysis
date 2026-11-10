@@ -17,7 +17,7 @@ def analyze_ip(events):
     for event in events:
         if (event.get("proto") == "tcp" and event.get("conn_state") in ("S0", "REJ")):
             target = event.get("id.resp_h")
-            port = event.get("id.resp_h")
+            port = event.get("id.resp_p")
 
             if target is not None and port is not None:
                 failed_ports[target].add(port)
