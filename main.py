@@ -15,12 +15,13 @@ def analyze_ip(events):
     failed_ports = defaultdict(set)
 
     for event in events:
-        if (event.get("proto") == "tcp" and event.get("conn_state") in ("S0", "REJ")):
+        proto = event.get("proto")
+        if proto in ("tcp", "udp") and event.get("conn_state") in ("S0", "REJ"):
             target = event.get("id.resp_h")
             port = event.get("id.resp_p")
 
             if target is not None and port is not None:
-                failed_ports[target].add(port)
+                failed_ports[(proto, target)].add(port)
 
     max_ports = max(
         (len(ports) for ports in failed_ports.values()), default = 0)
@@ -28,7 +29,7 @@ def analyze_ip(events):
         detections["port_scan"] = (25, f"possible port scan: {max_ports} ports")
 
     hosts = {
-        e.get("id_resp_h")
+        e.get("id.resp_h")
         for e in events
         if e.get("id.resp_h")
     }
@@ -36,7 +37,7 @@ def analyze_ip(events):
     if len(hosts) >= 20:
         detections["host_scan"] = (29, f"contacted {len(hosts)} distinct hosts")
 
-    uploaded = sum(int(e.get("origin_bytes") or 0) for e in events)
+    uploaded = sum(int(event.get("orig_bytes") or 0) for event in events)
 
     if uploaded >= 100 * 1024 * 1024:
         detections["large_upload"] = (15, f"outbound volume: {uploaded / 1048576:.1f} MiB")
@@ -93,4 +94,5 @@ def main():
             print(f"Error: {e}", flush=True)
             continue
 
-main()
+if __name__ == "__main__":
+    main()
