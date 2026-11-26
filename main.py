@@ -2,6 +2,7 @@ import sys
 import json
 import time
 from collections import defaultdict, deque
+from detect_threats import analyze_additional_threats
 
 WINDOW = 300 # 5 minute rolling window
 
@@ -41,6 +42,8 @@ def analyze_ip(events):
 
     if uploaded >= 100 * 1024 * 1024:
         detections["large_upload"] = (15, f"outbound volume: {uploaded / 1048576:.1f} MiB")
+    # additional detection rules from detect_threats.py  
+    detections.update(analyze_additional_threats(events))
 
     return detections
 
@@ -50,7 +53,7 @@ def process_events(event):
     if not ip:
         return
 
-    now = time.time()
+    now = float(event.get("ts", time.time())) # in case we want to analyze pcaps 
     recent = connections[ip]
 
     recent.append((now, event))
